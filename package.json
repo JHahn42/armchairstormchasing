@@ -1,0 +1,30 @@
+{
+  "name": "armchairstormchasing",
+  "version": "1.0.0",
+  "description": "server side implementation of the Armchair Storm Chasing App",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JHahn42/armchairstormchasing.git"
+  },
+  "author": "Jacob Hahn <jahahn@bsu.edu>",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/JHahn42/armchairstormchasing/issues"
+  },
+  "homepage": "https://github.com/JHahn42/armchairstormchasing#readme",
+  "dependencies": {
+    "@mapbox/polyline": "^1.0.0",
+    "@turf/turf": "^5.1.6",
+    "d3-dsv": "^1.1.1",
+    "express": "^4.16.4",
+    "papaparse": "git+https://github.com/JHahn42/PapaParse.git",
+    "request": "^2.88.0",
+    "socket.io": "^2.2.0",
+    "xmlhttprequest": "^1.8.0"
+  }
+}
