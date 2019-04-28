@@ -25,6 +25,7 @@
     "papaparse": "git+https://github.com/JHahn42/PapaParse.git",
     "request": "^2.88.0",
     "socket.io": "^2.2.0",
+    "ws": "^6.2.1",
     "xmlhttprequest": "^1.8.0"
   }
 }
