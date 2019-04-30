@@ -12,20 +12,44 @@ var polyline = require('@mapbox/polyline')
 // weather data connection
 var weather = require('./weatherparser.js')
 
-var serverStartTime = new Date().getTime()
+/*
+*********************************************************
+                    Server Settings
+*********************************************************
+*/
 
-// get fresh weather data
-var storms = weather.parse()
+// output server actions to console
+const consoleOutput = false
 
-// how often should a player score points
-// currently set at 5 minutes
-const scoreTiming = 5000 * 60
+// set to true if server will be on heroku
+const onHeroku = true
+
+// set up active game time for server
+var activeGameTime = true
+
+// hour the app becomes playable
+const dayBegin = 10
+
+// the last hour the app is playable in a day
+// ex. 23 = 11pm, makes game shuts down at midnight
+const dayEnd = 23
+
 // how many minutes between getting weather updates
 const weatherTiming = 5
+
 // how often should the server update a players current position and check for scores
 // currently every one second
 const gameTiming = 1000
 
+// ****************
+//  Score Settings
+// ****************
+
+// how often should a player score points
+// currently set at 5 minutes
+const scoreTiming = 5000 * 60
+
+// score values for all storm types
 const tornWarnScore = 20
 const tornWatchScore = 15
 const tsWarnScore = 10
@@ -43,6 +67,17 @@ const hail2inch5 = 8
 const hail3inch1 = 20
 const hail3inch5 = 10
 
+/*
+*********************************************************
+                End Server Settings
+*********************************************************
+*/
+
+var serverStartTime = new Date().getTime()
+
+// get fresh weather data
+var storms = weather.parse()
+
 var tornadoWarn = []
 var tornadoWatch = []
 var tStormWarn = []
@@ -51,10 +86,11 @@ var wind = []
 var tornado = []
 var hail = []
 
-setTimeout(() => { fillStormArrays(); console.log(storms) }, 5000)
+setTimeout(() => { fillStormArrays(); if(consoleOutput){ console.log(storms) } }, 5000)
 
 
-//start up server listening on chosen port
+// start up server listening on chosen port
+// takes either assigned heroku port, or port 3000 if testing locally
 const port = (process.env.PORT || 3000)
 
 app.get('/', (req, res) => {
@@ -65,8 +101,6 @@ server.listen(port, () => {
     console.log('Node app is running on port ' + port)
 });
 
-// Server/App connection
-
 // a list of all players who have logged in at one point through the day.
 // they stay in this list until end of day
 var activePlayers = []
@@ -74,10 +108,6 @@ var activePlayers = []
 // list of players currently logged in
 var loggedinPlayers = []
 
-// set up active game time for server
-var activeGameTime = true
-const dayBegin = 10
-const dayEnd = 23
 var emittedEndOfDay = false
 
 startGameTimer()
@@ -85,9 +115,16 @@ startGameTimer()
 //start gameplay, should run until end of day
 gameLoop()
 
+/* 
+*****************************************************************************
+                            Socket Connection
+*****************************************************************************
+*/
+
+
 io.on('connection', (socket) => {
 
-    console.log("a user has connected...")
+    if(consoleOutput){ console.log("a user has connected...") }
 
     // logs connected user into an account stored on the phone, allows them to retrieve updated data throughout the day
     socket.on('login', (username, pass, cScore, tScore, sMultiplyer) => {
@@ -121,10 +158,10 @@ io.on('connection', (socket) => {
                             "isTraveling": player.isTraveling 
                         })
                     if (!activeGameTime) {
-                        console.log("emitting endOfDay to " + socket.player.name)
+                        if(consoleOutput){ console.log("emitting endOfDay to " + socket.player.name) }
                         socket.emit("endOfDay")
                     }
-                    console.log(player.name + " has logged back in from previous session.")
+                    if(consoleOutput){ console.log(player.name + " has logged back in from previous session.") }
                     break
                 }
             }
@@ -150,10 +187,10 @@ io.on('connection', (socket) => {
                 socket.emit("loginSuccess")
 
                 if (!activeGameTime) {
-                    console.log("emitting endOfDay to " + socket.player.name)
+                    if(consoleOutput){ console.log("emitting endOfDay to " + socket.player.name) }
                     socket.emit("endOfDay")
                 }
-                console.log(socket.player.name + " has logged in for the first time today")
+                if(consoleOutput){ console.log(socket.player.name + " has logged in for the first time today") }
             }
         }
         else {
@@ -170,7 +207,7 @@ io.on('connection', (socket) => {
             loggedinPlayers.splice(loggedinPlayers.indexOf(socket.player), 1)
             socket.leave("loggedin")
             socket.player.isLoggedIn = false
-            console.log(socket.player.name + " logged off...")
+            if(consoleOutput){ console.log(socket.player.name + " logged off...") }
             socket.player.socket = null
             socket.player = null
         }
@@ -185,7 +222,7 @@ io.on('connection', (socket) => {
         // if the use was logged in when disconnected
         if (socket.player != null) {
 
-            console.log(socket.player.name + " disconnected...")
+            if(consoleOutput){ console.log(socket.player.name + " disconnected...") }
             loggedinPlayers.splice(loggedinPlayers.indexOf(socket.player), 1)
             socket.leave("loggedin")
             socket.player.isLoggedIn = false
@@ -193,7 +230,7 @@ io.on('connection', (socket) => {
             socket.player = null
         }
         else { 
-            console.log("a user has disconnected...")
+            if(consoleOutput){ console.log("a user has disconnected...") }
         }
     })
 
@@ -205,7 +242,7 @@ io.on('connection', (socket) => {
             socket.player.scoreMultiplyer = scoreMultiplyer
             // only add player to active players list once their start location is confirmed by the app
             activePlayers.push(socket.player)
-            console.log(socket.player.name + " has chosen a start location at " + socket.player.currentLocation.geometry.coordinates)
+            if(consoleOutput){ console.log(socket.player.name + " has chosen a start location at " + socket.player.currentLocation.geometry.coordinates) }
         }
         else {
             // emit error cannot select start location for active player
@@ -240,7 +277,7 @@ io.on('connection', (socket) => {
                 socket.player.startTime = new Date().getTime()
                 socket.player.isTraveling = true
                 socket.player.duration = duration
-                console.log(socket.player.name + " traveling from " + socket.player.currentLocation.geometry.coordinates + " to " + socket.player.destination.geometry.coordinates + " for " + duration / 60 + " minutes")
+                if(consoleOutput){ console.log(socket.player.name + " traveling from " + socket.player.currentLocation.geometry.coordinates + " to " + socket.player.destination.geometry.coordinates + " for " + duration / 60 + " minutes") }
             }
             else {
                 // emit error cannot set travel route while player is currently traveling, emit stop travel before setting new route
@@ -256,7 +293,7 @@ io.on('connection', (socket) => {
     socket.on('stopTravel', () => {
         if(socket.player.isTraveling) {
             socket.player.isTraveling = false
-            console.log(socket.player.name + " stopping travel at " + socket.player.currentLocation.geometry.coordinates)
+            if(consoleOutput){ console.log(socket.player.name + " stopping travel at " + socket.player.currentLocation.geometry.coordinates) }
         }
         else {
             // error requested stop travel when player was not traveling
@@ -295,16 +332,23 @@ io.on('connection', (socket) => {
         else {
             socket.emit("weatherUpdate", formatWeather())
         } 
-        console.log("sent user weather")
+        if(consoleOutput){ console.log("sent user weather") }
     })
     
     // tell app if game is in playable hours, tell number of seconds until it is playable if not
-    // this function may need to be updated if game is set to shut down before midnight.
     socket.on("getGameHours", () => {
         var secleft = 0
         if(!activeGameTime) {
             var now = new Date()
             var open = new Date()
+
+            open.setMinutes(0)
+            open.setSeconds(0)
+            open.setMilliseconds(0)
+            // if server shuts down before midnight
+            if (now.getHours() > dayBegin) {
+                open.setDate(now.getDate()+1)
+            }
             open.setHours(dayBegin)
             open.setMinutes(0)
             open.setSeconds(0)
@@ -321,7 +365,12 @@ io.on('connection', (socket) => {
     })
 });
 
-// Gameplay
+
+/*
+*****************************************************************************
+                                Gameplay
+*****************************************************************************
+*/
 
 function Player(socket, name, passkey, currentScore, totalScore, scoreMultiplyer, isTraveling, currentLocation, destination, route, routeGeometry) {
     this.socket = socket;
@@ -344,6 +393,78 @@ function Player(socket, name, passkey, currentScore, totalScore, scoreMultiplyer
     this.pointNearChecked = [];
 }
 
+// create a timer that checks the time every minute and grabs updated weather every X minutes while in active game time
+function startGameTimer() {
+
+    // get the current time and see if its in active time
+    var d = new Date()
+    checkGameTime(d)
+    if(consoleOutput){ console.log("active game time is " + activeGameTime) }
+    var intervalId = setInterval(runGameClock, 60 * 1000 - d.getSeconds() * 1000)
+
+    function runGameClock() {
+        var d = new Date()
+        if(consoleOutput){ console.log("Time is " + d.getHours() + ":" + d.getMinutes() + ":" + d.getSeconds()) }
+        checkGameTime(d)
+
+        if (activeGameTime) {
+            // update weather every X minutes
+            // since server gets weather data on start up, skip weather update for at least a minute after
+            // to prevent parser error
+            if (d.getMinutes() % weatherTiming == 0 && d.getTime() - serverStartTime > 60000) {
+                if(consoleOutput){ console.log("updating weather...") }
+                storms = weather.parse()
+                // wait 5 seconds to push weather to players since I can't figure out await/promise
+                setTimeout(() => {
+                    if(consoleOutput){ console.log(storms) }
+                    if(stormsHaveChanged()) {
+                        fillStormArrays()
+                         // send weather update to all players currently logged in
+                        io.in("loggedin").emit("weatherUpdate", formatWeather())
+                        if(consoleOutput){ console.log("sent updated weather to all logged in players.") }
+                        // ping self every 5 minutes to keep server awake during game time on heroku
+                        if(onHeroku){ http.get("http://armchairstormchasing.herokuapp.com") }
+                    }  
+                }, 5000)
+            }
+        }
+        else {
+            if(emittedEndOfDay == false) {
+                emittedEndOfDay = true
+                // only emit end of day if server wasn't started up in end of day state
+                // as users are sent end of day on login in this situation
+                // done by checking if server has been up for than two minutes before emitting end of day
+                if(d.getTime() - serverStartTime > 120000) {
+                    if(consoleOutput){ console.log("emitting end of day to all logged in users...") }
+                    io.in("loggedin").emit("endOfDay")
+                }
+            }
+        }
+        clearInterval(intervalId)
+        d = new Date()
+        intervalId = setInterval(runGameClock, 60 * 1000 - d.getSeconds() * 1000)
+
+    }
+}
+
+// checks if it currently active game time
+function checkGameTime(d) {
+    var currentTime = d.getHours()
+    if (currentTime <= dayEnd && currentTime >= dayBegin) {
+        if (activeGameTime == false) {
+            // start game loop at start of day
+            activeGameTime = true
+            // reset active players list if it somehow survived the night
+            activePlayers = []
+            emittedEndOfDay = false
+            gameLoop()   
+        }
+    } else {
+        activeGameTime = false
+    }
+}
+
+// main game loop of the app, runs every X seconds to move all players and check their scoring
 function gameLoop() {
     // only start gameplay loop if during game hours
     if (activeGameTime) {
@@ -387,7 +508,7 @@ function travel(player) {
 
     player.currentLocation = turf.along(player.route, distance)
 
-    console.log(player.name + " now at " + player.currentLocation.geometry.coordinates)
+    if(consoleOutput){ console.log(player.name + " now at " + player.currentLocation.geometry.coordinates) }
 
     if (turf.booleanEqual(player.currentLocation, player.destination)) {
         player.isTraveling = false
@@ -396,9 +517,15 @@ function travel(player) {
                 currentLocation: player.currentLocation.geometry.coordinates
             })
         }
-        console.log(player.name + " reached destination in " + ((((new Date().getTime()) - player.startTime) / 1000) / 60) + " minutes.")
+        if(consoleOutput){ console.log(player.name + " reached destination in " + ((((new Date().getTime()) - player.startTime) / 1000) / 60) + " minutes.") }
     }
 }
+
+/*
+*****************************************************************************
+                            Scoring and Weather
+*****************************************************************************
+*/
 
 // checks if player is in any weather polygons, gives score for every 5 minutes
 function checkScoring(player) {
@@ -538,69 +665,7 @@ function checkScoring(player) {
     }
 }
 
-// create a timer that checks the time every 5 minutes and grabs updated weather while in active game time
-function startGameTimer() {
-
-    // get the current time and see if its in active time
-    var d = new Date()
-    checkGameTime(d)
-    console.log("active game time is " + activeGameTime)
-    var intervalId = setInterval(runGameClock, 60 * 1000 - d.getSeconds() * 1000)
-
-    function runGameClock() {
-        var d = new Date()
-        console.log("Time is " + d.getHours() + ":" + d.getMinutes() + ":" + d.getSeconds())
-        checkGameTime(d)
-
-        if (activeGameTime) {
-            // update weather every X minutes
-            // since server gets weather data on start up, skip weather update for at least a minute after
-            // to prevent parser error
-            if (d.getMinutes() % weatherTiming == 0 && d.getTime() - serverStartTime > 60000) {
-                console.log("updating weather...")
-                storms = weather.parse()
-                // wait 5 seconds to push weather to players since I can't figure out await/promise
-                setTimeout(() => {
-                    console.log(storms)
-                    if(stormsHaveChanged()) {
-                        fillStormArrays()
-                         // send weather update to all players currently logged in
-                        io.in("loggedin").emit("weatherUpdate", formatWeather())
-                        console.log("sent updated weather to all logged in players.")
-                    }  
-                }, 5000)
-            }
-        }
-        else {
-            if(emittedEndOfDay == false) {
-                console.log("emitting end of day to all logged in users...")
-                io.in("loggedin").emit("endOfDay")
-                emittedEndOfDay = true
-            }
-        }
-        clearInterval(intervalId)
-        d = new Date()
-        intervalId = setInterval(runGameClock, 60 * 1000 - d.getSeconds() * 1000)
-
-    }
-}
-// checks if it currently active game time
-function checkGameTime(d) {
-    var currentTime = d.getHours()
-    if (currentTime <= dayEnd && currentTime >= dayBegin) {
-        if (activeGameTime == false) {
-            // start game loop at start of day
-            activeGameTime = true
-            // reset active players list if it somehow survived the night
-            activePlayers = []
-            emittedEndOfDay = false
-            gameLoop()   
-        }
-    } else {
-        activeGameTime = false
-    }
-}
-
+// fills current storm arrays from the main storm JSON
 function fillStormArrays() {
     tornadoWarn = storms.storms[0].instances
     tornadoWatch = storms.storms[1].instances
@@ -611,71 +676,73 @@ function fillStormArrays() {
     hail = storms.storms[6].instances
 }
 
+// Checks if any storm information has changed since last update
 function stormsHaveChanged() {
     if (tornadoWarn.length == storms.storms[0].instances.length) {
         for (var i = 0; i < tornadoWarn.length; i++) {
             if (!turf.booleanEqual(tornadoWarn[i], storms.storms[0].instances[i])) {
-                console.log("tornadoWarns have changed.")
+                if(consoleOutput){ console.log("tornadoWarns have changed.") }
                 return true
             }
         }
     }
     else {
-        console.log("tornadoWarns have changed.")
+        if(consoleOutput){ console.log("tornadoWarns have changed.") }
         return true
     }
     if (tornadoWatch.length == storms.storms[1].instances.length) {
         for (var i = 0; i < tornadoWatch.length; i++) {
             if (!turf.booleanEqual(tornadoWatch[i], storms.storms[1].instances[i])) {
-                console.log("tornadoWatches have changed.")
+                if(consoleOutput){ console.log("tornadoWatches have changed.") }
                 return true
             }
         }
     }
     else {
-        console.log("tornadoWatches have changed.")
+        if(consoleOutput){ console.log("tornadoWatches have changed.") }
         return true
     }
     if (tStormWarn.length == storms.storms[2].instances.length) {
         for (var i = 0; i < tStormWarn.length; i++) {
             if (!turf.booleanEqual(tStormWarn[i], storms.storms[2].instances[i])) {
-                console.log("thunderStormWarns have changed.")
+                if(consoleOutput){ console.log("thunderStormWarns have changed.") }
                 return true
             }
         }
     }
     else {
-        console.log("thunderStormWarns have changed.")
+        if(consoleOutput){ console.log("thunderStormWarns have changed.") }
         return true
     }
     if (tStormWatch.length == storms.storms[3].instances.length) {
         for (var i = 0; i < tStormWatch.length; i++) {
             if (!turf.booleanEqual(tStormWatch[i], storms.storms[3].instances[i])) {
-                console.log("thunderStormWatches have changed.")
+                if(consoleOutput){ console.log("thunderStormWatches have changed.") }
                 return true
             }
         }
     }
     else {
-        console.log("thunderStormWatches have changed.")
+        if(consoleOutput){ console.log("thunderStormWatches have changed.") }
         return true
     }
     if (wind.length != storms.storms[4].instances.length) {
-        console.log("wind reports updated.")
+        if(consoleOutput){ console.log("wind reports updated.") }
         return true
     }
     if (tornado.length != storms.storms[5].instances.length) {
-        console.log("tornado reports updated.")
+        if(consoleOutput){ console.log("tornado reports updated.") }
         return true
     }
     if (hail.length != storms.storms[6].instances.length) {
-        console.log("hail reports updated.")
+        if(consoleOutput){ console.log("hail reports updated.") }
         return true
     }
-    console.log("no storm reports have changed.")
+    if(consoleOutput){ console.log("no storm reports have changed.") }
     return false
 }
 
+// How the weather information is formatted when its sent to the app
 function formatWeather() {
     formattedStorms = []
 

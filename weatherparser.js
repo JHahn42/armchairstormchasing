@@ -1,9 +1,13 @@
 'use strict';
-var request = require('request');
-var fs = require('fs');
-var papa = require('papaparse')
-var url = 'https://api.weather.gov/alerts/active';
-var turf = require('@turf/turf')
+const request = require('request')
+const papa = require('papaparse')
+const turf = require('@turf/turf')
+
+const url = 'https://api.weather.gov/alerts/active'
+const windUrl = 'https://www.spc.noaa.gov/climo/reports/today_filtered_wind.csv'
+const tornadoUrl ='https://www.spc.noaa.gov/climo/reports/today_torn.csv'
+const hailUrl ='https://www.spc.noaa.gov/climo/reports/today_hail.csv'
+
 
 module.exports = {
     parse: () => {
@@ -62,10 +66,6 @@ module.exports = {
         var hail = []
         var tornado = []
         var wind = []
-
-        const windUrl = 'https://www.spc.noaa.gov/climo/reports/today_filtered_wind.csv';
-        const tornadoUrl ='https://www.spc.noaa.gov/climo/reports/today_torn.csv';
-        const hailUrl ='https://www.spc.noaa.gov/climo/reports/today_hail.csv';
 
         // get the wind reports
         papa.parse(windUrl, {
