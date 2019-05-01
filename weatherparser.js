@@ -73,7 +73,7 @@ module.exports = {
             header: true,
             step: function(row) {
                 var obj = row.data[0]
-                if (obj.Time != null && obj.Lon != null && obj.Lat != null) {
+                if (obj.Time != null && !isNaN(parseFloat(obj.Lon)) && !isNaN(parseFloat(obj.Lat))) {
                     wind.push({ "time": obj.Time, "coordinates": turf.point([parseFloat(obj.Lon), parseFloat(obj.Lat)]) })
                 }
             },
@@ -88,7 +88,7 @@ module.exports = {
             header: true,
             step: function(row) {
                 var obj = row.data[0]
-                if (obj.Time != null && obj.Lon != null && obj.Lat != null) {
+                if (obj.Time != null && !isNaN(parseFloat(obj.Lon)) && !isNaN(parseFloat(obj.Lat))) {
                     tornado.push({ "time": obj.Time, "coordinates": turf.point([parseFloat(obj.Lon), parseFloat(obj.Lat)]) })
                 }
             },
@@ -103,7 +103,7 @@ module.exports = {
             header: true,
             step: function(row) {
                 var obj = row.data[0]
-                if (obj.Time != null && obj.Lon != null && obj.Lat != null) {
+                if (obj.Time != null && !isNaN(parseFloat(obj.Lon)) && !isNaN(parseFloat(obj.Lat))) {
                     hail.push({ "time": obj.Time, "size": obj.Size, "coordinates": turf.point([parseFloat(obj.Lon), parseFloat(obj.Lat)]) })
                 }
             },

@@ -19,7 +19,7 @@ var weather = require('./weatherparser.js')
 */
 
 // output server actions to console
-const consoleOutput = true
+const consoleOutput = false
 
 // set to true if server will be on heroku
 const onHeroku = true
@@ -33,6 +33,10 @@ const dayEnd = 23
 
 // how many minutes between getting weather updates
 const weatherTiming = 5
+
+// delay in milliseconds between parsing weather and updating the weather on the server
+// allows the parser time to safely finish and get all weather data
+const weatherParseDelay = 10000
 
 // how often should the server update a players current position and check for scores in milliseconds
 const gameTiming = 1000
@@ -86,7 +90,7 @@ var wind = []
 var tornado = []
 var hail = []
 
-setTimeout(() => { fillStormArrays(); if(consoleOutput){ console.log(storms) } }, 5000)
+setTimeout(() => { fillStormArrays(); if(consoleOutput){ console.log(storms) } }, weatherParseDelay)
 
 
 // start up server listening on chosen port
@@ -325,9 +329,9 @@ io.on('connection', (socket) => {
     socket.on("getWeatherUpdate", () => {
 
         var now = new Date()
-        // delay sending weather data if it is still getting parsed
-        if (now.getMinutes() % weatherTiming == 0 && now.getSeconds() < 5) {
-            setTimeout(() => { socket.emit("weatherUpdate", formatWeather()) }, 5000)
+        // delay sending weather data if it is still getting parsed or if server just started up
+        if ( (now.getMinutes() % weatherTiming == 0 && now.getSeconds() < (weatherParseDelay / 1000)) || (now.getTime() - serverStartTime.getTime() <= weatherParseDelay) ) {
+            setTimeout(() => { socket.emit("weatherUpdate", formatWeather()) }, weatherParseDelay)
         }
         else {
             socket.emit("weatherUpdate", formatWeather())
@@ -414,7 +418,7 @@ function startGameTimer() {
             if (d.getMinutes() % weatherTiming == 0 && d.getTime() - serverStartTime > 60000) {
                 if(consoleOutput){ console.log("updating weather...") }
                 storms = weather.parse()
-                // wait 5 seconds to push weather to players since I can't figure out await/promise
+                // wait X seconds to push weather to players since I can't figure out await/promise
                 setTimeout(() => {
                     if(consoleOutput){ console.log(storms) }
                     if(stormsHaveChanged()) {
@@ -425,7 +429,7 @@ function startGameTimer() {
                         // ping self every 5 minutes to keep server awake during game time on heroku
                         if(onHeroku){ http.get("http://armchairstormchasing.herokuapp.com") }
                     }  
-                }, 5000)
+                }, weatherParseDelay)
             }
         }
         else {
@@ -457,6 +461,7 @@ function checkGameTime(d) {
             // reset active players list if it somehow survived the night
             activePlayers = []
             emittedEndOfDay = false
+            io.in("loggedin").emit("beginOfDay")
             gameLoop()   
         }
     } else {
