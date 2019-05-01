@@ -19,13 +19,10 @@ var weather = require('./weatherparser.js')
 */
 
 // output server actions to console
-const consoleOutput = false
+const consoleOutput = true
 
 // set to true if server will be on heroku
 const onHeroku = true
-
-// set up active game time for server
-var activeGameTime = true
 
 // hour the app becomes playable
 const dayBegin = 10
@@ -37,8 +34,7 @@ const dayEnd = 23
 // how many minutes between getting weather updates
 const weatherTiming = 5
 
-// how often should the server update a players current position and check for scores
-// currently every one second
+// how often should the server update a players current position and check for scores in milliseconds
 const gameTiming = 1000
 
 // ****************
@@ -54,6 +50,7 @@ const tornWarnScore = 20
 const tornWatchScore = 15
 const tsWarnScore = 10
 const tsWatchScore = 5
+
 const wind1 = 5
 const wind5 = 2
 const torn1 = 50
@@ -72,6 +69,9 @@ const hail3inch5 = 10
                 End Server Settings
 *********************************************************
 */
+
+// set up active game time for server
+var activeGameTime = true
 
 var serverStartTime = new Date().getTime()
 
