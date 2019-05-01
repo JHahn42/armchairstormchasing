@@ -180,7 +180,7 @@ io.on('connection', (socket) => {
                 socket.player = new Player(socket= socket,
                                             name= username,
                                             passkey= pass,
-                                            currentScore= cScore,
+                                            currentScore= 0,
                                             totalScore= tScore,
                                             scoreMultiplier= sMultiplier,
                                             isTraveling= false,
