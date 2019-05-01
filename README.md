@@ -2,13 +2,14 @@
 Developed as a capstone project at Ball State University 2019
 
 Project members: Robert Gunderson, Jacob Hahn, William Moore, and Ian Pemberton
-
 Based off of a previous capstone project by Daniel Payton, Dylon Price, Isaac Walling, David Wisenberg
 
+---
 ## Functionality
 Supports the Android App Armchair Storm Chasing with real-time weather data, simulated route traveling, and points scoring based on simulated proximity to real-time storm data. Through the use of Socket.IO and the Heroku hosting platform, this server provides the gameplay functions for the app. 
 
-## Usage
+---
+## App Side Usage
 ### Socket.IO Connection
 The Server/App connection and communication is handled with socketIO, a real-time message based connection system. A set of emitters and listeners on both the app and server facilitate this message passing.
 
@@ -216,11 +217,75 @@ socket.emit("logout");
 ```
 
 ---
+#### End of Day
+When the server reaches the end of playable game time for the day, or when a player attempts to log in after this time is reached, the app receives an **endOfDay** emit.
+
+---
+#### Time Until Begin of Day
+While the server is outside of active game hours, the time until the next day's game begins can be found by emitting from the app:
+```Java
+socket.emit("getGameHours");
+```
+And in the **gameHours** listener, the app receives:
+```Javascript
+{
+    "isActiveHours": //boolean value, true during game hours, false otherwise
+    "startTime": //the hour in military time for when the game starts again
+    "timeUntilOpen": //time until the server opens again in seconds
+}
+```
+
+---
+#### Begin of Day
+When the server reaches the beginning of playable game time for the day, a **beginOfDay** emit is sent to all logged in players.
+
+---
+#### Connection
+A Connection event is fired whenever a user connects to the server. On the server, this is handled by:
+```Javascript
+io.on('connection', (socket) => {
+    socket.on("event", parameters) { 
+        //do stuff
+    }
+}
+```
+All listener events on the server side reside inside of this listener, and listen per socket.
+
+On the app side, this event can be listened for through the **Socket.EVENT_CONNECT** reserved event.
+
+---
 #### Disconnect
-When the connection between the app and server is lost for any reason, a **disconnect** emit is automatically sent to both server and app, and any necessary work for handling a disconnect can be placed into the disconnect listener.
+When the connection between the app and server is lost for any reason, a **disconnect** emit is automatically sent to both server and app, and any necessary work for handling a disconnect can be placed into the reserved **Socket.EVENT_DISCONNECT** listener.
 
 ---
 #### Error Messages
 If at any point the server receives an illegal emit for the Player's current status, the server will send to the app an error message detailing the illegal action, which can be picked up by the app through a listener on **errorMessage**
 
 ---
+## Server Options
+Near the top of index.js is a list of constants that may be edited to control basic game elements, such as scoring value, scoring rate, update timings, etc.
+
+---
+## Heroku Requirements
+### Procfile
+To function on Heroku, a ProcFile is required. This tells Heroku what to do to start the app
+```
+web: node index.js
+```
+tells Heroku to start the app with the index.js file through node when it receives an http request.
+
+### Auto Sleeping
+Heroku forces free apps to sleep if no active connections exist for a certain time. As the server needs to stay awake for all of active game time to properly function, the server pings itself after every weather update to get around this.
+
+### Auto Restarting
+Heroku will also auto restart the server should a crash happen, unless the server gets stuck in a crashing loop, at which point it will need to be manually restarted through Heroku's app settings. If the server does gets stuck in a crashing loop, a fix will most likely need to be made to the code before restarting.
+
+### Enviroment Variables
+Heroku randomly assigns a port variable for the server, which can be accessed inside the code with `process.env.PORT`
+Heroku's default timezone is in UTC. This server was designed to run in EST, so inside of Heroku's app settings the timezone needs to be set under Config Vars by setting the KEY to `TZ` and the VALUE to `America/New_York`
+
+### Auto Update on New Deploys
+The Heroku app is tied to the github repo, and when it detects an update to the github page, it auto updates the app and redeploys.
+
+### 24 Hour Refresh
+Once every 24 hours +/- 3 hours, the app on heroku is restored to its initial state. This means that any changes to files/ new files stored on the server are lost after 24 hours.
