@@ -136,7 +136,7 @@ io.on('connection', (socket) => {
     if(consoleOutput){ console.log("a user has connected...") }
 
     // logs connected user into an account stored on the phone, allows them to retrieve updated data throughout the day
-    socket.on('login', (username, pass, cScore, tScore, sMultiplyer) => {
+    socket.on('login', (username, pass, cScore, tScore, sMultiplier) => {
 
         if (socket.player == null) {
             var success = false
@@ -182,7 +182,7 @@ io.on('connection', (socket) => {
                                             passkey= pass,
                                             currentScore= cScore,
                                             totalScore= tScore,
-                                            scoreMultiplyer= sMultiplyer,
+                                            scoreMultiplier= sMultiplier,
                                             isTraveling= false,
                                             currentLocation= null,
                                             destination= null,
@@ -243,12 +243,12 @@ io.on('connection', (socket) => {
         }
     })
 
-    socket.on('startLocationSelect', (long, lat, scoreMultiplyer) => {
+    socket.on('startLocationSelect', (long, lat, scoreMultiplier) => {
 
         if(activePlayers.includes(socket.player) == false) {
 
             socket.player.currentLocation = turf.point([parseFloat(long), parseFloat(lat)])
-            socket.player.scoreMultiplyer = scoreMultiplyer
+            socket.player.scoreMultiplier = scoreMultiplier
             // only add player to active players list once their start location is confirmed by the app
             activePlayers.push(socket.player)
             if(consoleOutput){ console.log(socket.player.name + " has chosen a start location at " + socket.player.currentLocation.geometry.coordinates) }
@@ -381,7 +381,7 @@ io.on('connection', (socket) => {
 *****************************************************************************
 */
 
-function Player(socket, name, passkey, currentScore, totalScore, scoreMultiplyer, isTraveling, currentLocation, destination, route, routeGeometry) {
+function Player(socket, name, passkey, currentScore, totalScore, scoreMultiplier, isTraveling, currentLocation, destination, route, routeGeometry) {
     this.socket = socket;
     this.name = name;
     this.passkey = passkey
@@ -397,7 +397,7 @@ function Player(socket, name, passkey, currentScore, totalScore, scoreMultiplyer
     this.startTime = null;
     this.speed = 0;
     this.duration = 0;
-    this.scoreMultiplyer = scoreMultiplyer;
+    this.scoreMultiplier = scoreMultiplier;
     this.stormsInside = [];
     this.pointNearChecked = [];
 }
@@ -569,8 +569,8 @@ function checkScoring(player) {
                             if (turf.booleanEqual(storms[i], player.stormsInside[ind][0])) {
                                 // if it has been over X minutes since last recieving points for this storm, reset timer and award points
                                 if (time - player.stormsInside[ind][1] >= scoreTiming) {
-                                    player.currentScore += Math.round(scoring * player.scoreMultiplyer)
-                                    player.totalScore += Math.round(scoring * player.scoreMultiplyer)
+                                    player.currentScore += Math.round(scoring * player.scoreMultiplier)
+                                    player.totalScore += Math.round(scoring * player.scoreMultiplier)
                                     player.stormsInside[ind][1] = time
                                     player.inStorm = true
                                     break
@@ -586,8 +586,8 @@ function checkScoring(player) {
                         if (!player.inStorm) {
                             player.stormsInside.push([storms[i], time])
                             player.inStorm = true
-                            player.currentScore += Math.round(scoring * player.scoreMultiplyer)
-                            player.totalScore += Math.round(scoring * player.scoreMultiplyer)
+                            player.currentScore += Math.round(scoring * player.scoreMultiplier)
+                            player.totalScore += Math.round(scoring * player.scoreMultiplier)
                             break
                         }
                         // else, storm was found and no more storms need to be checked
@@ -599,8 +599,8 @@ function checkScoring(player) {
                     else {
                         player.stormsInside.push([storms[i], time])
                         player.inStorm = true
-                        player.currentScore += Math.round(scoring * player.scoreMultiplyer)
-                        player.totalScore += Math.round(scoring * player.scoreMultiplyer)
+                        player.currentScore += Math.round(scoring * player.scoreMultiplier)
+                        player.totalScore += Math.round(scoring * player.scoreMultiplier)
                         break
                     }
                 }
@@ -625,48 +625,48 @@ function checkScoring(player) {
                     if (dist > closeDist && dist <= farDist) {
                         if (isHail) {
                             if (storm.size == null || storm.size < 100) {
-                                player.currentScore += Math.round(hailsmallFar * player.scoreMultiplyer)
-                                player.totalScore += Math.round(hailsmallFar * player.scoreMultiplyer)
+                                player.currentScore += Math.round(hailsmallFar * player.scoreMultiplier)
+                                player.totalScore += Math.round(hailsmallFar * player.scoreMultiplier)
                             }
                             else if (storm.size >= 100 && storm.size < 200) {
-                                player.currentScore += Math.round(hail1inchFar * player.scoreMultiplyer)
-                                player.totalScore += Math.round(hail1inchFar * player.scoreMultiplyer)
+                                player.currentScore += Math.round(hail1inchFar * player.scoreMultiplier)
+                                player.totalScore += Math.round(hail1inchFar * player.scoreMultiplier)
                             }
                             else if (storm.size >= 200 && storm.size < 300) {
-                                player.currentScore += Math.round(hail2inchFar * player.scoreMultiplyer)
-                                player.totalScore += Math.round(hail2inchFar * player.scoreMultiplyer)
+                                player.currentScore += Math.round(hail2inchFar * player.scoreMultiplier)
+                                player.totalScore += Math.round(hail2inchFar * player.scoreMultiplier)
                             }
                             else if (storm.size >= 300) {
-                                player.currentScore += Math.round(hail3inchFar * player.scoreMultiplyer)
-                                player.totalScore += Math.round(hail3inchFar * player.scoreMultiplyer)
+                                player.currentScore += Math.round(hail3inchFar * player.scoreMultiplier)
+                                player.totalScore += Math.round(hail3inchFar * player.scoreMultiplier)
                             }
                         } else {
-                            player.currentScore += Math.round(scoreFar * player.scoreMultiplyer)
-                            player.totalScore += Math.round(scoreFar * player.scoreMultiplyer)
+                            player.currentScore += Math.round(scoreFar * player.scoreMultiplier)
+                            player.totalScore += Math.round(scoreFar * player.scoreMultiplier)
                         }
                     }
                     else if (dist < closeDist) {
                         if (isHail) {
                             if (storm.size == null || storm.size < 100) {
-                                player.currentScore += Math.round(hailsmallClose * player.scoreMultiplyer)
-                                player.totalScore += Math.round(hailsmallClose * player.scoreMultiplyer)
+                                player.currentScore += Math.round(hailsmallClose * player.scoreMultiplier)
+                                player.totalScore += Math.round(hailsmallClose * player.scoreMultiplier)
                             }
                             else if (storm.size >= 100 && storm.size < 200) {
-                                player.currentScore += Math.round(hail1inchClose * player.scoreMultiplyer)
-                                player.totalScore += Math.round(hail1inchClose * player.scoreMultiplyer)
+                                player.currentScore += Math.round(hail1inchClose * player.scoreMultiplier)
+                                player.totalScore += Math.round(hail1inchClose * player.scoreMultiplier)
                             }
                             else if (storm.size >= 200 && storm.size < 300) {
-                                player.currentScore += Math.round(hail2inchClose * player.scoreMultiplyer)
-                                player.totalScore += Math.round(hail2inchClose * player.scoreMultiplyer)
+                                player.currentScore += Math.round(hail2inchClose * player.scoreMultiplier)
+                                player.totalScore += Math.round(hail2inchClose * player.scoreMultiplier)
                             }
                             else if (storm.size >= 300) {
-                                player.currentScore += Math.round(hail3inchClose * player.scoreMultiplyer)
-                                player.totalScore += Math.round(hail3inchClose * player.scoreMultiplyer)
+                                player.currentScore += Math.round(hail3inchClose * player.scoreMultiplier)
+                                player.totalScore += Math.round(hail3inchClose * player.scoreMultiplier)
                             }
                         }
                         else {
-                            player.currentScore += Math.round(scoreClose * player.scoreMultiplyer)
-                            player.totalScore += Math.round(scoreClose * player.scoreMultiplyer)
+                            player.currentScore += Math.round(scoreClose * player.scoreMultiplier)
+                            player.totalScore += Math.round(scoreClose * player.scoreMultiplier)
                         }
                     }
                     player.pointNearChecked.push(storm.coordinates)
