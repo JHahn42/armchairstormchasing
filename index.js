@@ -330,7 +330,7 @@ io.on('connection', (socket) => {
 
         var now = new Date()
         // delay sending weather data if it is still getting parsed or if server just started up
-        if ( (now.getMinutes() % weatherTiming == 0 && now.getSeconds() < (weatherParseDelay / 1000)) || (now.getTime() - serverStartTime.getTime() <= weatherParseDelay) ) {
+        if ( (now.getMinutes() % weatherTiming == 0 && now.getSeconds() < (weatherParseDelay / 1000)) || (now.getTime() - serverStartTime <= weatherParseDelay) ) {
             setTimeout(() => { socket.emit("weatherUpdate", formatWeather()) }, weatherParseDelay)
         }
         else {
